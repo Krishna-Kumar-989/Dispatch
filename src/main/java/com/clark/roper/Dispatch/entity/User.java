@@ -22,7 +22,7 @@ public class User {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)
+    @Column(nullable = false,unique = true)
     private String username;
 
     @Column(nullable = false)
@@ -42,11 +42,17 @@ public class User {
     @Column(nullable = false)
     private UserStatus status;
 
+
+
+
     @PrePersist
     protected void OnCreate()
     {
         this.created = Instant.now();
         this.status  = UserStatus.FREE;
+        if (this.role == null) {
+            this.role = UserRolesEnum.USER;
+        }
     }
 
 

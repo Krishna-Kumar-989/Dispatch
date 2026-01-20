@@ -3,8 +3,10 @@ package com.clark.roper.Dispatch.service;
 import com.clark.roper.Dispatch.dto.LoginRequest;
 import com.clark.roper.Dispatch.dto.RegisterRequest;
 import com.clark.roper.Dispatch.entity.User;
+import com.clark.roper.Dispatch.entity.UserProfile;
 import com.clark.roper.Dispatch.enums.UserRolesEnum;
 import com.clark.roper.Dispatch.enums.UserStatus;
+import com.clark.roper.Dispatch.repository.UserProfileRepository;
 import com.clark.roper.Dispatch.repository.UserRepository;
 import com.clark.roper.Dispatch.security.JwtService;
 import lombok.RequiredArgsConstructor;
@@ -26,6 +28,7 @@ public class AuthService {
     private final JwtService jwtService;
 
 
+
     public String register(RegisterRequest registerRequest) {
         User user = new User();
         user.setUsername(registerRequest.getUsername());
@@ -33,8 +36,11 @@ public class AuthService {
         user.setPassword(passwordEncoder.encode(registerRequest.getPassword()));
         user.setRole(UserRolesEnum.USER);
         user.setStatus(UserStatus.FREE);
+
+        UserProfile userProfile = new UserProfile();
         try {
             userRepository.save(user);
+
         } catch (Exception e) {
             throw new RuntimeException("User registration failed", e);
         }

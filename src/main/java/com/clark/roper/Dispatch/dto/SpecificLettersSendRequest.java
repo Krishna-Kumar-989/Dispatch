@@ -7,7 +7,7 @@ import lombok.NoArgsConstructor;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class SpecificLettersRequest {
+public class SpecificLettersSendRequest {
 
 
     private Long receiverId;

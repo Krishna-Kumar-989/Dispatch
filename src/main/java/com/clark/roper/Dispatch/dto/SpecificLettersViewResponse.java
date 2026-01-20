@@ -10,7 +10,7 @@ import java.time.Instant;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class SpecificLettersResponse {
+public class SpecificLettersViewResponse {
 
     private Long id;
     private Long senderId;
