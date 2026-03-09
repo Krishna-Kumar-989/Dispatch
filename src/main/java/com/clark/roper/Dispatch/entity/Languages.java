@@ -16,14 +16,14 @@ public class Languages {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private long id;
+    private Long id;
 
-    @Column(name = "language",updatable = true)
+    @Column(name = "language", updatable = true)
     private String language;
 
+
     @PrePersist
-    protected void OnCreate()
-    {
+    protected void onCreate() {
         if (this.language == null) {
             this.language = "ENGLISH";
         }

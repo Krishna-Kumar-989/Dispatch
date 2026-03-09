@@ -9,9 +9,11 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 
 @Repository
-public interface UserProfileInterestsJunctionRepository extends JpaRepository<UserProfileInterestsJunction,Long> {
+public interface UserProfileInterestsJunctionRepository extends JpaRepository<UserProfileInterestsJunction, Long> {
 
-    List<UserProfileInterestsJunction>  findByUserProfile(UserProfile userProfile);
-    List<UserProfileInterestsJunction>  findByInterests(Interests interests);
+    List<UserProfileInterestsJunction> findByUserProfile(UserProfile userProfile);
 
+    List<UserProfileInterestsJunction> findByInterests(Interests interests);
+
+    void deleteByUserProfile(UserProfile userProfile);
 }

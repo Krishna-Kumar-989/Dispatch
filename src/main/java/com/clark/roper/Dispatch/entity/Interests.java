@@ -18,13 +18,12 @@ public class Interests {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "interest",nullable = false)
+    @Column(name = "interest", nullable = false)
     private String interest;
 
     @PrePersist
-    protected void OnCreate(){
-        if(interest == null)
-        {
+    protected void onCreate() {
+        if (interest == null) {
             this.interest = "SLEEPING";
         }
     }

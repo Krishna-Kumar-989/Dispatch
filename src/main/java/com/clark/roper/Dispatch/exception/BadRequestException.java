@@ -1,0 +1,12 @@
+package com.clark.roper.Dispatch.exception;
+
+/**
+ * Thrown when a request contains invalid data or violates business rules.
+ * Maps to HTTP 400.
+ */
+public class BadRequestException extends RuntimeException {
+
+    public BadRequestException(String message) {
+        super(message);
+    }
+}

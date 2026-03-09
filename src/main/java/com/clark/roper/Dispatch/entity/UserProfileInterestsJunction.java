@@ -20,7 +20,7 @@ public class UserProfileInterestsJunction {
 
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
-    private String Id;
+    private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY,optional = false)
     @JoinColumn(name = "user_profile_id",nullable = false)

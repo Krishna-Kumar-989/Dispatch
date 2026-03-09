@@ -24,12 +24,14 @@ public interface SpecificLettersRepository extends JpaRepository<SpecificLetters
     @Query("""
     SELECT sl FROM SpecificLetters sl
     WHERE (:senderId IS NULL OR sl.sender.id = :senderId)
+      AND (:receiverId IS NULL OR sl.receiver.id = :receiverId)
       AND (:status IS NULL OR sl.status = :status)
       AND sl.createdAt >= COALESCE(:startDate, sl.createdAt)
       AND sl.createdAt <= COALESCE(:endDate, sl.createdAt)
 """)
     List<SpecificLetters> filterLetters(
             @Param("senderId") Long senderId,
+            @Param("receiverId") Long receiverId,
             @Param("status") SpecificLettersStatusEnum status,
             @Param("startDate") Instant startDate,
             @Param("endDate") Instant endDate

@@ -1,21 +1,24 @@
 package com.clark.roper.Dispatch.service;
 
-
+import com.clark.roper.Dispatch.dto.UserBioRequest;
 import com.clark.roper.Dispatch.dto.UserProfileCreateRequest;
 import com.clark.roper.Dispatch.dto.UserProfileEditRequest;
+import com.clark.roper.Dispatch.dto.UserProfileViewResponse;
 import com.clark.roper.Dispatch.entity.*;
-import com.clark.roper.Dispatch.enums.UserGenderEnum;
+import com.clark.roper.Dispatch.exception.BadRequestException;
+import com.clark.roper.Dispatch.exception.ResourceNotFoundException;
 import com.clark.roper.Dispatch.repository.*;
 import com.clark.roper.Dispatch.security.JwtService;
+import com.clark.roper.Dispatch.security.JwtUtil;
 import jakarta.transaction.Transactional;
-import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
-import java.time.LocalDate;
-import java.util.Set;
+import java.util.*;
 
 @Service
-@AllArgsConstructor
+@RequiredArgsConstructor
 public class UserMeService {
 
     private final JwtService jwtService;
@@ -25,185 +28,174 @@ public class UserMeService {
     private final LanguagesRepository languagesRepository;
     private final InterestsRepository interestsRepository;
     private final UserProfileInterestsJunctionRepository userProfileInterestsJunctionRepository;
+    private final UserBioRepository userBioRepository;
+    private final ProfileMapper profileMapper;
+    private final ImageUploadService imageUploadService;
 
+    // View My Profile:
 
-
-    //Create profile
     @Transactional
-    public String create(UserProfileCreateRequest userProfileCreateRequest, String authHeader)
-    {
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            throw new RuntimeException("Invalid Authorization header");
+    public UserProfileViewResponse viewMyProfile(String authHeader) {
+        String username = JwtUtil.extractUsernameFromAuthHeader(authHeader, jwtService);
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        UserProfile userProfile = userProfileRepository.findByUser(user)
+                .orElse(null);
+
+        if (userProfile == null) {
+            return null; // No profile created yet
         }
 
+        return profileMapper.toViewResponse(userProfile, user);
+    }
 
-        String jwt;
-        jwt = authHeader.substring(7);
+    // Upload Profile Picture :
 
-        String username;
-        username = jwtService.extractUsername(jwt);
+    @Transactional
+    public String uploadProfilePicture(MultipartFile file, String authHeader) {
+        String username = JwtUtil.extractUsernameFromAuthHeader(authHeader, jwtService);
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+        UserProfile userProfile = userProfileRepository.findByUser(user)
+                .orElseThrow(() -> new ResourceNotFoundException("Profile not found — create one first"));
 
-        User user =  userRepository.findByUsername(username).orElseThrow();
+        String url = imageUploadService.upload(file);
+        userProfile.setProfilePictureUrl(url);
+        userProfileRepository.save(userProfile);
+
+        return url;
+    }
+
+    //Create Profile :
+
+    @Transactional
+    public String create(UserProfileCreateRequest userProfileCreateRequest, String authHeader) {
+
+        String username = JwtUtil.extractUsernameFromAuthHeader(authHeader, jwtService);
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
         if (userProfileRepository.existsByUser(user)) {
-            throw new RuntimeException("User profile already exists");
+            throw new BadRequestException("User profile already exists");
         }
 
-
-
         UserProfile userProfile = new UserProfile();
-
         userProfile.setUser(user);
 
-        //Extract data
-        UserGenderEnum gender = userProfileCreateRequest.getGender();
-        LocalDate dateOfBirth = userProfileCreateRequest.getDateOfBirth();
-        String country = userProfileCreateRequest.getCountry();
-
-        Set<String> languages = userProfileCreateRequest.getLanguages();
-
-        Set<String> interests = userProfileCreateRequest.getInterests();
-
-
-
-        //Set data
-        userProfile.setGender(gender);
-        userProfile.setDateOfBirth(dateOfBirth);
-        userProfile.setCountry(country);
+        // Set profile fields
+        userProfile.setGender(userProfileCreateRequest.getGender());
+        userProfile.setDateOfBirth(userProfileCreateRequest.getDateOfBirth());
+        userProfile.setCountry(userProfileCreateRequest.getCountry());
 
         userProfileRepository.save(userProfile);
 
-        //Set junction tables
+        // Set Languages junction
+        Set<String> languages = userProfileCreateRequest.getLanguages();
+        for (String languageName : languages) {
+            Languages languageElement = languagesRepository.findByLanguage(languageName)
+                    .orElseThrow(() -> new ResourceNotFoundException("Language not found: " + languageName));
 
-            //Languages Junction table
-
-
-               for(String languageName : languages)
-                {
-                    UserProfileLanguagesJunction userProfileLanguagesJunction = new UserProfileLanguagesJunction();
-
-                    Languages languageElement = new Languages();
-                    languageElement = languagesRepository.findByLanguage(languageName).orElseThrow();
-
-
-
-                    userProfileLanguagesJunction.setUserProfile(userProfile);
-                    userProfileLanguagesJunction.setLanguages(languageElement);
-
-                    userProfileLanguagesJunctionRepository.save(userProfileLanguagesJunction);
-                }
-
-           // Interests Junction table
-                for (String interestName : interests)
-                   {
-                      UserProfileInterestsJunction userProfileInterestsJunction = new UserProfileInterestsJunction();
-
-                      Interests interestElement = interestsRepository.findByInterest(interestName).orElseThrow();
-
-                      userProfileInterestsJunction.setUserProfile(userProfile);
-                      userProfileInterestsJunction.setInterests(interestElement);
-
-                      userProfileInterestsJunctionRepository.save(userProfileInterestsJunction);
-                    }
-
-
-
-
-
-
-
-
-        return"Success";
-    }
-
-
-
-
-
-    //Edit
-    @Transactional
-    public String edit(UserProfileEditRequest req, String authHeader)
-    {
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            throw new RuntimeException("Invalid Authorization header");
+            UserProfileLanguagesJunction junction = new UserProfileLanguagesJunction();
+            junction.setUserProfile(userProfile);
+            junction.setLanguages(languageElement);
+            userProfileLanguagesJunctionRepository.save(junction);
         }
 
-        //extract user
-        String jwt = authHeader.substring(7);
-        String username = jwtService.extractUsername(jwt);
+        // Set Interests junction
+        Set<String> interests = userProfileCreateRequest.getInterests();
+        for (String interestName : interests) {
+            Interests interestElement = interestsRepository.findByInterest(interestName)
+                    .orElseThrow(() -> new ResourceNotFoundException("Interest not found: " + interestName));
 
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("User not found"));
-
-        UserProfile userProfile = userProfileRepository.findByUser(user)
-                .orElseThrow(() -> new RuntimeException("Profile not found"));
-
-        //set non junction fields
-
-        if (req.getGender() != null) {
-            userProfile.setGender(req.getGender());
+            UserProfileInterestsJunction junction = new UserProfileInterestsJunction();
+            junction.setUserProfile(userProfile);
+            junction.setInterests(interestElement);
+            userProfileInterestsJunctionRepository.save(junction);
         }
-
-        if (req.getDateOfBirth() != null) {
-            userProfile.setDateOfBirth(req.getDateOfBirth());
-        }
-
-        if (req.getCountry() != null) {
-            userProfile.setCountry(req.getCountry());
-        }
-
-        /* will implement later
-        //languages
-
-        if (req.getLanguages() != null) {
-
-            //delete old
-            userProfileLanguagesJunctionRepository
-                    .deleteByUserProfile(userProfile);
-
-            for (String langName : req.getLanguages()) {
-
-                Languages language = languagesRepository
-                        .findByName(langName)
-                        .orElseThrow(() ->
-                                new RuntimeException("Language not found: " + langName));
-
-                UserProfileLanguagesJunction junction =
-                        new UserProfileLanguagesJunction(userProfile, language);
-
-                userProfileLanguagesJunctionRepository.save(junction);
-            }
-        }
-
-        //interests
-
-        if (req.getInterests() != null) {
-
-            userProfileInterestsJunctionRepository
-                    .deleteByUserProfile(userProfile);
-
-            for (String interestName : req.getInterests()) {
-
-                Interests interest = interestsRepository
-                        .findByName(interestName)
-                        .orElseThrow(() ->
-                                new RuntimeException("Interest not found: " + interestName));
-
-                UserProfileInterestsJunction junction =
-                        new UserProfileInterestsJunction(userProfile, interest);
-
-                userProfileInterestsJunctionRepository.save(junction);
-            }
-        }
-        **/
-
-
-
 
         return "Success";
     }
 
+    // Edit Profile:
 
+    @Transactional
+    public String edit(UserProfileEditRequest req, String authHeader) {
 
+        String username = JwtUtil.extractUsernameFromAuthHeader(authHeader, jwtService);
 
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        UserProfile userProfile = userProfileRepository.findByUser(user)
+                .orElseThrow(() -> new ResourceNotFoundException("Profile not found — create one first"));
+
+        // Update non-junction fields (only if provided)
+        if (req.getGender() != null) {
+            userProfile.setGender(req.getGender());
+        }
+        if (req.getDateOfBirth() != null) {
+            userProfile.setDateOfBirth(req.getDateOfBirth());
+        }
+        if (req.getCountry() != null) {
+            userProfile.setCountry(req.getCountry());
+        }
+
+        // Update languages (delete old, insert new)
+        if (req.getLanguages() != null) {
+            userProfileLanguagesJunctionRepository.deleteByUserProfile(userProfile);
+            userProfileLanguagesJunctionRepository.flush();
+
+            for (String langName : req.getLanguages()) {
+                Languages language = languagesRepository.findByLanguage(langName)
+                        .orElseThrow(() -> new ResourceNotFoundException("Language not found: " + langName));
+
+                UserProfileLanguagesJunction junction = new UserProfileLanguagesJunction();
+                junction.setUserProfile(userProfile);
+                junction.setLanguages(language);
+                userProfileLanguagesJunctionRepository.save(junction);
+            }
+        }
+
+        // Update interests (delete old, insert new)
+        if (req.getInterests() != null) {
+            userProfileInterestsJunctionRepository.deleteByUserProfile(userProfile);
+            userProfileInterestsJunctionRepository.flush();
+
+            for (String interestName : req.getInterests()) {
+                Interests interest = interestsRepository.findByInterest(interestName)
+                        .orElseThrow(() -> new ResourceNotFoundException("Interest not found: " + interestName));
+
+                UserProfileInterestsJunction junction = new UserProfileInterestsJunction();
+                junction.setUserProfile(userProfile);
+                junction.setInterests(interest);
+                userProfileInterestsJunctionRepository.save(junction);
+            }
+        }
+
+        return "Success";
+    }
+
+    // Update Bio
+
+    @Transactional
+    public String updateBio(UserBioRequest userBioRequest, String authHeader) {
+
+        String username = JwtUtil.extractUsernameFromAuthHeader(authHeader, jwtService);
+
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        UserBio userBio = userBioRepository.findByUser(user)
+                .orElseGet(() -> {
+                    UserBio newBio = new UserBio();
+                    newBio.setUser(user);
+                    return newBio;
+                });
+
+        userBio.setBio(userBioRequest.getBio());
+        userBioRepository.save(userBio);
+
+        return "Success";
+    }
 }

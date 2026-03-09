@@ -9,6 +9,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
 import java.security.Key;
+import java.util.Base64;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -19,10 +20,10 @@ public class JwtService {
     @Value("${jwt.secret}")
     private String secretKey;
 
-//    @Value("${jwt.expirationHours}")
-//    private long EXPIRATION_HOURS;
+    // @Value("${jwt.expirationHours}")
+    // private long EXPIRATION_HOURS;
 
-    private  long EXPIRATION_TIME = 1000 * 60 * 60 * 24; // 24 hours
+    private long EXPIRATION_TIME = 1000 * 60 * 60 * 24; // 24 hours
 
     public String generateToken(String username) {
 
@@ -38,27 +39,26 @@ public class JwtService {
     }
 
     private Key getSignKey() {
-        return Keys.hmacShaKeyFor(secretKey.getBytes());
+        try {
+            byte[] keyBytes = Base64.getDecoder().decode(secretKey);
+            return Keys.hmacShaKeyFor(keyBytes);
+        } catch (IllegalArgumentException e) {
+            // Fallback: if the key is not Base64-encoded, use raw bytes
+            return Keys.hmacShaKeyFor(secretKey.getBytes());
+        }
     }
 
-
-    private Claims extractClaims(String jwt)
-    {
+    private Claims extractClaims(String jwt) {
         return Jwts.parserBuilder()
                 .setSigningKey(getSignKey())
                 .build().parseClaimsJws(jwt)
                 .getBody();
     }
 
-
-
-
-    public String extractUsername(String jwt)
-    {
+    public String extractUsername(String jwt) {
         return extractClaims(jwt).getSubject();
 
     }
-
 
     public boolean isTokenValid(String token, UserDetails userDetails) {
         final String username = extractUsername(token);
@@ -68,13 +68,5 @@ public class JwtService {
     private boolean isTokenExpired(String token) {
         return extractClaims(token).getExpiration().before(new Date());
     }
-
-
-
-
-
-
-
-
 
 }

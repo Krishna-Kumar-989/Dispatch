@@ -20,37 +20,33 @@ public class UserProfile {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    //User Relation
+    // User Relation
     @OneToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "user_id", nullable = false, unique = true)
     private User user;
 
-
-
-    //Gender
-    @Column(nullable = false)
+    // Gender
+    @Column(name = "gender",nullable = false)
     @Enumerated(EnumType.STRING)
     private UserGenderEnum gender;
 
-    //DOB
+    // DOB
     @Column(name = "date_of_birth", nullable = false)
     private LocalDate dateOfBirth;
 
-    //Country
-    @Column(name = "country",nullable = false)
+    // Country
+    @Column(name = "country", nullable = false)
     private String country;
 
+    // Profile picture
+    @Column(name = "profile_picture_url")
+    private String profilePictureUrl;
 
-   //language
-    //implemented by junction table
+    // language
+    // implemented by junction table
 
-
-
-   //Interests
-     //implemented by junction table
-
-
-
+    // Interests
+    // implemented by junction table
 
     @PrePersist
     protected void onCreate() {
@@ -67,16 +63,5 @@ public class UserProfile {
             this.dateOfBirth = LocalDate.of(2000, 1, 1);
         }
     }
-
-
-
-
-
-
-
-
-
-
-
 
 }

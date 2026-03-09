@@ -11,8 +11,12 @@ public class UserProfileViewResponse {
     private UserGenderEnum gender;
     private LocalDate dateOfBirth;
     private String country;
+    private String profilePictureUrl;
 
-    //Junction tables
+    // Junction tables
     private Set<String> languages;
     private Set<String> interests;
+
+    // Bio
+    private String bio;
 }

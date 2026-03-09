@@ -1,4 +1,4 @@
-HELP.md
+docs/HELP.md
 target/
 .mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
@@ -31,3 +31,27 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### Docs, Learnings & Test ###
+docs/
+learnings/
+test/
+
+### Environment & Secrets ###
+.env
+*.env
+envvar.txt
+
+### Uploads (user-generated content) ###
+uploads/
+
+### OS Files ###
+.DS_Store
+Thumbs.db
+
+### Logs ###
+*.log
+logs/
+
+### Security Audit ###
+security-audit/

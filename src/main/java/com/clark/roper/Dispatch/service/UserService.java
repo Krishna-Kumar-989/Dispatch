@@ -1,5 +1,6 @@
 package com.clark.roper.Dispatch.service;
 
+import com.clark.roper.Dispatch.exception.ResourceNotFoundException;
 import com.clark.roper.Dispatch.repository.UserRepository;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -9,18 +10,15 @@ import org.springframework.stereotype.Service;
 public class UserService {
     private final UserRepository userRepository;
 
-    public Long getIdFromUsername(String username)
-    {
+    public Long getIdFromUsername(String username) {
         return userRepository.findByUsername(username)
-                .orElseThrow(()-> new RuntimeException("User not Found"))
+                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + username))
                 .getId();
     }
 
     public String getUsernameFromId(Long id) {
         return userRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("User not found"))
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + id))
                 .getUsername();
     }
-
-
 }

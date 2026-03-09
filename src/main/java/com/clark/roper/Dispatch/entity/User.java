@@ -22,16 +22,16 @@ public class User {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false,unique = true)
+    @Column(nullable = false, unique = true)
     private String username;
 
     @Column(nullable = false)
     private String password;
 
-    @Column(nullable = true)
+    @Column(nullable = true, unique = true)
     private String email;
 
-    @Column(nullable = false,updatable = false)
+    @Column(nullable = false, updatable = false)
     private Instant created;
 
     @Enumerated(EnumType.STRING)
@@ -41,19 +41,16 @@ public class User {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private UserStatus status;
-
-
-
+    private Instant lastActive;
 
     @PrePersist
-    protected void OnCreate()
-    {
+    protected void OnCreate() {
         this.created = Instant.now();
-        this.status  = UserStatus.FREE;
+        this.lastActive = Instant.now();
+        this.status = UserStatus.FREE;
         if (this.role == null) {
             this.role = UserRolesEnum.USER;
         }
     }
-
 
 }
